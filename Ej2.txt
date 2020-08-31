@@ -1,0 +1,44 @@
+/*CREATE TABLE sucursal(
+cods VARCHAR2(500) PRIMARY KEY,
+nrosucdependientes NUMBER(1) NOT NULL CHECK (nrosucdependientes BETWEEN 0 AND 9)
+);
+
+CREATE OR REPLACE TRIGGER control_insercion
+BEFORE INSERT ON sucursal
+FOR EACH ROW
+BEGIN
+ FOR indice_sucursal IN 1 .. :NEW.nrosucdependientes
+ LOOP
+  INSERT INTO sucursal VALUES(:NEW.cods || '.' || indice_sucursal, 0);
+ END LOOP;
+END;
+
+/
+INSERT INTO sucursal VALUES('Azul', 4);
+/
+INSERT INTO sucursal VALUES('Rojo', 4);
+/
+SELECT * FROM sucursal;
+/
+*/
+
+CREATE OR REPLACE TRIGGER control_borrado
+BEFORE UPDATE ON sucursal
+FOR EACH ROW
+DECLARE
+diferencia NUMBER(1);
+BEGIN
+ diferencia := :OLD.nrosucdependientes - :NEW.nrosucdependientes;
+ IF diferencia > 0 THEN
+  DELETE FROM sucursal WHERE cods LIKE :OLD.cods || '.%' AND cods > :OLD.cods || '.' || :NEW.nrosucdependientes;
+ ELSIF diferencia < 0 THEN
+  FOR indice_sucursal IN :OLD.nrosucdependientes + 1 .. :NEW.nrosucdependientes
+  LOOP
+   INSERT INTO sucursal VALUES(:OLD.cods || '.' || indice_sucursal, 0);
+  END LOOP;
+ END IF;
+END;
+
+/
+UPDATE sucursal SET nrosucdependientes = 2 WHERE cods = 'Rojo.2';
+/
