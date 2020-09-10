@@ -4,14 +4,31 @@ nrosucdependientes NUMBER(1) NOT NULL CHECK (nrosucdependientes BETWEEN 0 AND 9)
 );
 
 CREATE OR REPLACE TRIGGER control_insercion
-BEFORE INSERT ON sucursal
-FOR EACH ROW
+FOR INSERT ON sucursal
+COMPOUND TRIGGER
+
+TYPE inserciones_sucursal IS TABLE OF sucursal%ROWTYPE INDEX BY SIMPLE_INTEGER;
+instancia_inserciones_sucursal inserciones_sucursal;
+indice SIMPLE_INTEGER := 0;
+
+BEFORE EACH ROW IS
 BEGIN
  FOR indice_sucursal IN 1 .. :NEW.nrosucdependientes
  LOOP
-  INSERT INTO sucursal VALUES(:NEW.cods || '.' || indice_sucursal, 0);
+  indice := indice + 1;
+  instancia_inserciones_sucursal(indice).cods := :NEW.cods || '.' || indice_sucursal;
+  instancia_inserciones_sucursal(indice).nrosucdependientes := 0;
+  -- INSERT INTO sucursal VALUES(:NEW.cods || '.' || indice_sucursal, 0);
  END LOOP;
-END;
+END BEFORE EACH ROW;
+
+ AFTER STATEMENT IS
+ BEGIN
+  FORALL indice_tabla IN 1..instancia_inserciones_sucursal.count()
+   INSERT INTO sucursal VALUES instancia_inserciones_sucursal(indice_tabla);
+ END AFTER STATEMENT;
+
+END control_insercion;
 
 /
 INSERT INTO sucursal VALUES('Azul', 4);
@@ -22,23 +39,63 @@ SELECT * FROM sucursal;
 /
 */
 
-CREATE OR REPLACE TRIGGER control_borrado
-BEFORE UPDATE ON sucursal
-FOR EACH ROW
-DECLARE
+
+/*CREATE OR REPLACE TRIGGER control_actualizado
+FOR UPDATE ON sucursal
+COMPOUND TRIGGER
+
+TYPE inserciones_sucursal IS TABLE OF sucursal%ROWTYPE INDEX BY SIMPLE_INTEGER;
+
+instancia_inserciones_sucursal inserciones_sucursal;
+instancia_borrados_sucursal inserciones_sucursal;
+
+indice_inserciones_sucursal SIMPLE_INTEGER := 0;
+indice_borrados_sucursal SIMPLE_INTEGER := 0;
+
 diferencia NUMBER(1);
+
+BEFORE EACH ROW IS
+
 BEGIN
+
  diferencia := :OLD.nrosucdependientes - :NEW.nrosucdependientes;
+
  IF diferencia > 0 THEN
-  DELETE FROM sucursal WHERE cods LIKE :OLD.cods || '.%' AND cods > :OLD.cods || '.' || :NEW.nrosucdependientes;
+  indice_borrados_sucursal := indice_borrados_sucursal + 1;
+  instancia_borrados_sucursal(indice_borrados_sucursal).cods := :OLD.cods;
+  instancia_borrados_sucursal(indice_borrados_sucursal).nrosucdependientes := :NEW.nrosucdependientes;
+  -- DELETE FROM sucursal WHERE cods LIKE :OLD.cods || '.%' AND cods > :OLD.cods || '.' || :NEW.nrosucdependientes;
+
  ELSIF diferencia < 0 THEN
   FOR indice_sucursal IN :OLD.nrosucdependientes + 1 .. :NEW.nrosucdependientes
   LOOP
-   INSERT INTO sucursal VALUES(:OLD.cods || '.' || indice_sucursal, 0);
+   indice_inserciones_sucursal := indice_inserciones_sucursal + 1;
+   instancia_inserciones_sucursal(indice_inserciones_sucursal).cods := :OLD.cods || '.' || indice_sucursal;
+   instancia_inserciones_sucursal(indice_inserciones_sucursal).nrosucdependientes := 0;
+    -- INSERT INTO sucursal VALUES(:OLD.cods || '.' || indice_sucursal, 0);
   END LOOP;
  END IF;
-END;
+
+END BEFORE EACH ROW;
+
+ AFTER STATEMENT IS
+ BEGIN
+
+  FORALL indice_borrado IN 1..instancia_borrados_sucursal.count()
+   DELETE FROM sucursal
+   WHERE cods LIKE instancia_borrados_sucursal(indice_borrado).cods || '.%'
+   AND cods > instancia_borrados_sucursal(indice_borrado).cods || '.' || instancia_borrados_sucursal(indice_borrado).nrosucdependientes;
+
+  FORALL indice_actualizado IN 1..instancia_inserciones_sucursal.count()
+   INSERT INTO sucursal VALUES instancia_inserciones_sucursal(indice_actualizado);
+
+ END AFTER STATEMENT;
+
+END control_actualizado; */
 
 /
-UPDATE sucursal SET nrosucdependientes = 2 WHERE cods = 'Rojo.2';
+-- UPDATE sucursal SET nrosucdependientes = 2 WHERE cods = 'Rojo.2';
+UPDATE sucursal SET nrosucdependientes = 1 WHERE cods = 'Rojo';
+/
+SELECT * FROM sucursal;
 /
