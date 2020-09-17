@@ -1,8 +1,3 @@
-/*DROP TABLE venta;
-DROP TABLE proveedor;
-DROP TYPE proveedor_con_ventas;
-DROP TYPE codigos_productos;
-
 CREATE TABLE proveedor(
 codpv NUMBER(8) PRIMARY KEY,
 nompv VARCHAR2(10) NOT NULL
@@ -14,43 +9,6 @@ codpv NUMBER(8) REFERENCES proveedor NOT NULL,
 codproducto NUMBER(8) NOT NULL
 );
 
-INSERT INTO proveedor VALUES (10, 'Lisy');
-INSERT INTO proveedor VALUES (20, 'Kirsty');
-INSERT INTO proveedor VALUES (30, 'Bjorky');
-INSERT INTO proveedor VALUES (40, 'Wimpy');
-INSERT INTO proveedor VALUES (50, 'Chucky');
-INSERT INTO proveedor VALUES (60, 'Chubby');
-
-INSERT INTO venta VALUES (3, 10, 1);
-INSERT INTO venta VALUES (5, 10, 2);
-INSERT INTO venta VALUES (7, 10, 5);
-INSERT INTO venta VALUES (17, 10, 2);
-INSERT INTO venta VALUES (8, 20, 2);
-INSERT INTO venta VALUES (1, 20, 1);
-INSERT INTO venta VALUES (9, 20, 5);
-INSERT INTO venta VALUES (31, 20, 1);
-INSERT INTO venta VALUES (33, 20, 1);
-INSERT INTO venta VALUES (10, 30, 1);
-INSERT INTO venta VALUES (11, 30, 2);
-INSERT INTO venta VALUES (12, 40, 2);
-INSERT INTO venta VALUES (2, 40, 1);
-INSERT INTO venta VALUES (22, 40, 2);
-INSERT INTO venta VALUES (28, 50, 2);
-INSERT INTO venta VALUES (21, 50, 1);
-INSERT INTO venta VALUES (29, 50, 5);
-INSERT INTO venta VALUES (99, 60, 2);
-*/
-
-/*SELECT * FROM proveedor;
-
-SELECT * FROM venta;
-
-SELECT DISTINCT proveedor.codpv, proveedor.nompv, venta.codproducto
-FROM proveedor
-INNER JOIN venta ON proveedor.codpv=venta.codpv
-ORDER BY proveedor.codpv, venta.codproducto;*/
-
-/
 CREATE TYPE codigos_productos AS VARRAY(1000000) OF NUMBER;
 /
 CREATE TYPE proveedor_con_ventas AS OBJECT (
@@ -58,7 +16,6 @@ CREATE TYPE proveedor_con_ventas AS OBJECT (
   nompv VARCHAR2(10),
   codigos codigos_productos);
 /
-
 CREATE OR REPLACE PROCEDURE parejas_proveedores
 (n IN NUMBER)
 IS

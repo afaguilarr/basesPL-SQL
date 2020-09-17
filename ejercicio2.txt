@@ -1,7 +1,7 @@
-/*CREATE TABLE sucursal(
+CREATE TABLE sucursal(
 cods VARCHAR2(500) PRIMARY KEY,
 nrosucdependientes NUMBER(1) NOT NULL CHECK (nrosucdependientes BETWEEN 0 AND 9)
-);*/
+);
 
 CREATE OR REPLACE TRIGGER control_insercion
 FOR INSERT ON sucursal
@@ -29,15 +29,6 @@ END BEFORE EACH ROW;
 
 END control_insercion;
 /
-/*
-/
-INSERT INTO sucursal VALUES('Azul', 4);
-/
-INSERT INTO sucursal VALUES('Rojo', 4);
-/
-SELECT * FROM sucursal;
-/
-*/
 
 CREATE OR REPLACE TRIGGER control_actualizado
 FOR UPDATE ON sucursal
@@ -85,10 +76,4 @@ END BEFORE EACH ROW;
  END AFTER STATEMENT;
 
 END control_actualizado;
-
-/
--- UPDATE sucursal SET nrosucdependientes = 2 WHERE cods = 'Rojo.2';
-UPDATE sucursal SET nrosucdependientes = 1 WHERE cods = 'Rojo';
-/
-SELECT * FROM sucursal;
 /
