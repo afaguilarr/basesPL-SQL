@@ -64,7 +64,7 @@ CREATE OR REPLACE PROCEDURE parejas_proveedores
 IS
   TYPE proveedores_con_ventas IS VARRAY (1000000) OF proveedor_con_ventas;
   codigo_proveedor_actual NUMBER(8);
-  instancia_proveedores_con_ventas proveedores_con_ventas := proveedores_con_ventas();
+  instancia_proveedores_ventas proveedores_con_ventas := proveedores_con_ventas();
   booleano BOOLEAN;
   proveedores_iguales proveedores_con_ventas;
   impresion VARCHAR2(32767);
@@ -83,32 +83,32 @@ IS
     LOOP
       IF venta_actual.codpv = codigo_proveedor_actual THEN
       -- Si el codigo del proveedor es el mismo que el anterior
-      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.extend();
-      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos(instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.count) := venta_actual.codproducto;
+      instancia_proveedores_ventas(instancia_proveedores_ventas.count).codigos.extend();
+      instancia_proveedores_ventas(instancia_proveedores_ventas.count).codigos(instancia_proveedores_ventas(instancia_proveedores_ventas.count).codigos.count) := venta_actual.codproducto;
       ELSE
       -- Si el codigo del proveedor es 'nuevo'
       codigo_proveedor_actual := venta_actual.codpv;
-      instancia_proveedores_con_ventas.extend();
-      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count) := proveedor_con_ventas(venta_actual.codpv, venta_actual.nompv, codigos_productos());
-      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.extend();
-      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos(instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.count) := venta_actual.codproducto;
+      instancia_proveedores_ventas.extend();
+      instancia_proveedores_ventas(instancia_proveedores_ventas.count) := proveedor_con_ventas(venta_actual.codpv, venta_actual.nompv, codigos_productos());
+      instancia_proveedores_ventas(instancia_proveedores_ventas.count).codigos.extend();
+      instancia_proveedores_ventas(instancia_proveedores_ventas.count).codigos(instancia_proveedores_ventas(instancia_proveedores_ventas.count).codigos.count) := venta_actual.codproducto;
       END IF;
     END LOOP;
 
     -- Comienza iteracion sobre la lista de proveedores para definir cuales son iguales e imprimir las n-tuplas
-    FOR proveedor_uno IN 1 .. instancia_proveedores_con_ventas.count
+    FOR proveedor_uno IN 1 .. instancia_proveedores_ventas.count
     LOOP
       proveedores_iguales := proveedores_con_ventas();
       proveedores_iguales.extend();
-      proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_con_ventas(proveedor_uno);
+      proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_ventas(proveedor_uno);
       -- Comienza iteracion sobre los proveedores siguientes a proveedor_uno
-      FOR proveedor_dos IN proveedor_uno + 1 .. instancia_proveedores_con_ventas.count
+      FOR proveedor_dos IN proveedor_uno + 1 .. instancia_proveedores_ventas.count
       LOOP
-        IF instancia_proveedores_con_ventas(proveedor_uno).codigos.count = instancia_proveedores_con_ventas(proveedor_dos).codigos.count THEN
+        IF instancia_proveedores_ventas(proveedor_uno).codigos.count = instancia_proveedores_ventas(proveedor_dos).codigos.count THEN
         -- ELSE Distintos simplemente no pasa nada
-        FOR indice_codigo IN 1 .. instancia_proveedores_con_ventas(proveedor_uno).codigos.count
+        FOR indice_codigo IN 1 .. instancia_proveedores_ventas(proveedor_uno).codigos.count
           LOOP
-          IF instancia_proveedores_con_ventas(proveedor_uno).codigos(indice_codigo) != instancia_proveedores_con_ventas(proveedor_dos).codigos(indice_codigo) THEN
+          IF instancia_proveedores_ventas(proveedor_uno).codigos(indice_codigo) != instancia_proveedores_ventas(proveedor_dos).codigos(indice_codigo) THEN
             -- Distintos
             booleano := False;
             EXIT;
@@ -119,7 +119,7 @@ IS
           IF booleano THEN
           -- Iguales
           proveedores_iguales.extend();
-          proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_con_ventas(proveedor_dos);
+          proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_ventas(proveedor_dos);
           END IF;
         END IF;
       END LOOP;
