@@ -59,93 +59,103 @@ CREATE TYPE proveedor_con_ventas AS OBJECT (
   codigos codigos_productos);
 /
 
-DECLARE
-TYPE proveedores_con_ventas IS VARRAY (1000000) OF proveedor_con_ventas;
-n NUMBER(2) := 3;
-codigo_proveedor_actual NUMBER(8);
-instancia_proveedores_con_ventas proveedores_con_ventas := proveedores_con_ventas();
-booleano BOOLEAN;
-proveedores_iguales proveedores_con_ventas;
-impresion VARCHAR2(32767);
-BEGIN
+CREATE OR REPLACE PROCEDURE parejas_proveedores
+(n IN NUMBER)
+IS
+  TYPE proveedores_con_ventas IS VARRAY (1000000) OF proveedor_con_ventas;
+  codigo_proveedor_actual NUMBER(8);
+  instancia_proveedores_con_ventas proveedores_con_ventas := proveedores_con_ventas();
+  booleano BOOLEAN;
+  proveedores_iguales proveedores_con_ventas;
+  impresion VARCHAR2(32767);
+  parametro_invalido EXCEPTION;
+  BEGIN
 
--- Comienza iteracion sobre el JOIN para poder encontrar los productos vendidos de cada proveedor
-FOR venta_actual IN (SELECT DISTINCT proveedor.codpv, proveedor.nompv, venta.codproducto
-FROM proveedor INNER JOIN venta ON proveedor.codpv=venta.codpv
-ORDER BY proveedor.codpv, venta.codproducto)
- LOOP
-  IF venta_actual.codpv = codigo_proveedor_actual THEN
-   -- Si el codigo del proveedor es el mismo que el anterior
-   instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.extend();
-   instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos(instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.count) := venta_actual.codproducto;
+  IF n <= 1 THEN 
+    RAISE parametro_invalido;
+  ELSIF n >= 7 THEN 
+    RAISE parametro_invalido;
   ELSE
-   -- Si el codigo del proveedor es 'nuevo'
-   codigo_proveedor_actual := venta_actual.codpv;
-   instancia_proveedores_con_ventas.extend();
-   instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count) := proveedor_con_ventas(venta_actual.codpv, venta_actual.nompv, codigos_productos());
-   instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.extend();
-   instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos(instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.count) := venta_actual.codproducto;
-  END IF;
-END LOOP;
-
--- Comienza iteracion sobre la lista de proveedores para definir cuales son iguales e imprimir las n-tuplas
-FOR proveedor_uno IN 1 .. instancia_proveedores_con_ventas.count
- LOOP
-  proveedores_iguales := proveedores_con_ventas();
-  proveedores_iguales.extend();
-  proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_con_ventas(proveedor_uno);
-  -- Comienza iteracion sobre los proveedores siguientes a proveedor_uno
-  FOR proveedor_dos IN proveedor_uno + 1 .. instancia_proveedores_con_ventas.count
-   LOOP
-    IF instancia_proveedores_con_ventas(proveedor_uno).codigos.count = instancia_proveedores_con_ventas(proveedor_dos).codigos.count THEN
-    -- ELSE Distintos simplemente no pasa nada
-     FOR indice_codigo IN 1 .. instancia_proveedores_con_ventas(proveedor_uno).codigos.count
-      LOOP
-       IF instancia_proveedores_con_ventas(proveedor_uno).codigos(indice_codigo) != instancia_proveedores_con_ventas(proveedor_dos).codigos(indice_codigo) THEN
-         -- Distintos
-         booleano := False;
-         EXIT;
-       ELSE
-         booleano := True;
-       END IF;
-      END LOOP;
-      IF booleano THEN
-       -- Iguales
-       proveedores_iguales.extend();
-       proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_con_ventas(proveedor_dos);
+    -- Comienza iteracion sobre el JOIN para poder encontrar los productos vendidos de cada proveedor
+    FOR venta_actual IN (SELECT DISTINCT proveedor.codpv, proveedor.nompv, venta.codproducto
+    FROM proveedor INNER JOIN venta ON proveedor.codpv=venta.codpv
+    ORDER BY proveedor.codpv, venta.codproducto)
+    LOOP
+      IF venta_actual.codpv = codigo_proveedor_actual THEN
+      -- Si el codigo del proveedor es el mismo que el anterior
+      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.extend();
+      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos(instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.count) := venta_actual.codproducto;
+      ELSE
+      -- Si el codigo del proveedor es 'nuevo'
+      codigo_proveedor_actual := venta_actual.codpv;
+      instancia_proveedores_con_ventas.extend();
+      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count) := proveedor_con_ventas(venta_actual.codpv, venta_actual.nompv, codigos_productos());
+      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.extend();
+      instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos(instancia_proveedores_con_ventas(instancia_proveedores_con_ventas.count).codigos.count) := venta_actual.codproducto;
       END IF;
-    END IF;
-  END LOOP;
+    END LOOP;
 
-  -- Comienza iteracion para la impresion, n - 2 representa el numero de espacios que debemos dejar para que no haya index out of bounds
-  -- pero que se tomen todos los valores existentes, -1 por el primer valor y -1 por el valor de iteracion
-  FOR indice_iguales IN 2 .. proveedores_iguales.count - (n - 2)
-  LOOP
-   -- El primero siempre se imprimira si la iteracion comienza
-   impresion := '[' || proveedores_iguales(1).codpv || ' (' || proveedores_iguales(1).nompv || ')';
-   -- Comienza iteracion para agregar los valores iguales, n - 2 representa el numero de veces que se debe iterar (0 significa una vez)
-   -- -1 por el primer valor y -1 por el valor de iteracion
-   FOR indice_iguales_dos IN indice_iguales .. indice_iguales + (n - 2)
+    -- Comienza iteracion sobre la lista de proveedores para definir cuales son iguales e imprimir las n-tuplas
+    FOR proveedor_uno IN 1 .. instancia_proveedores_con_ventas.count
     LOOP
-    impresion := impresion || ', ' || proveedores_iguales(indice_iguales_dos).codpv || ' (' || proveedores_iguales(indice_iguales_dos).nompv || ')';
-   END LOOP;
-   impresion := impresion || '] --> {';
-   -- Iteracion sobre los codigos de productos para la impresion '1,2,n,'
-   FOR codigo IN 1 .. proveedores_iguales(1).codigos.count
-    LOOP
-    impresion := impresion || proveedores_iguales(1).codigos(codigo) || ',';
-   END LOOP;
-   -- Se remueve la ultima y se agrega } para tener [...] --> {1,2,n}
-   impresion := RTRIM(impresion, ',');
-   impresion := impresion || '}';
-   DBMS_OUTPUT.PUT_LINE(impresion);
-  END LOOP;
+      proveedores_iguales := proveedores_con_ventas();
+      proveedores_iguales.extend();
+      proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_con_ventas(proveedor_uno);
+      -- Comienza iteracion sobre los proveedores siguientes a proveedor_uno
+      FOR proveedor_dos IN proveedor_uno + 1 .. instancia_proveedores_con_ventas.count
+      LOOP
+        IF instancia_proveedores_con_ventas(proveedor_uno).codigos.count = instancia_proveedores_con_ventas(proveedor_dos).codigos.count THEN
+        -- ELSE Distintos simplemente no pasa nada
+        FOR indice_codigo IN 1 .. instancia_proveedores_con_ventas(proveedor_uno).codigos.count
+          LOOP
+          IF instancia_proveedores_con_ventas(proveedor_uno).codigos(indice_codigo) != instancia_proveedores_con_ventas(proveedor_dos).codigos(indice_codigo) THEN
+            -- Distintos
+            booleano := False;
+            EXIT;
+          ELSE
+            booleano := True;
+          END IF;
+          END LOOP;
+          IF booleano THEN
+          -- Iguales
+          proveedores_iguales.extend();
+          proveedores_iguales(proveedores_iguales.count) := instancia_proveedores_con_ventas(proveedor_dos);
+          END IF;
+        END IF;
+      END LOOP;
 
-END LOOP;
+      -- Comienza iteracion para la impresion, n - 2 representa el numero de espacios que debemos dejar para que no haya index out of bounds
+      -- pero que se tomen todos los valores existentes, -1 por el primer valor y -1 por el valor de iteracion
+      FOR indice_iguales IN 2 .. proveedores_iguales.count - (n - 2)
+      LOOP
+      -- El primero siempre se imprimira si la iteracion comienza
+      impresion := '[' || proveedores_iguales(1).codpv || ' (' || proveedores_iguales(1).nompv || ')';
+      -- Comienza iteracion para agregar los valores iguales, n - 2 representa el numero de veces que se debe iterar (0 significa una vez)
+      -- -1 por el primer valor y -1 por el valor de iteracion
+      FOR indice_iguales_dos IN indice_iguales .. indice_iguales + (n - 2)
+        LOOP
+        impresion := impresion || ', ' || proveedores_iguales(indice_iguales_dos).codpv || ' (' || proveedores_iguales(indice_iguales_dos).nompv || ')';
+      END LOOP;
+      impresion := impresion || '] --> {';
+      -- Iteracion sobre los codigos de productos para la impresion '1,2,n,'
+      FOR codigo IN 1 .. proveedores_iguales(1).codigos.count
+        LOOP
+        impresion := impresion || proveedores_iguales(1).codigos(codigo) || ',';
+      END LOOP;
+      -- Se remueve la ultima y se agrega } para tener [...] --> {1,2,n}
+      impresion := RTRIM(impresion, ',');
+      impresion := impresion || '}';
+      DBMS_OUTPUT.PUT_LINE(impresion);
+      END LOOP;
 
-EXCEPTION
+    END LOOP;
+  END IF;
 
-WHEN OTHERS THEN
-DBMS_OUTPUT.PUT_LINE('Ha ocurrido un error');
+  EXCEPTION
+
+  WHEN parametro_invalido THEN
+  DBMS_OUTPUT.PUT_LINE('El valor del parámetro n de entrada debe ser mayor a 1 y menor a 7');
+  WHEN OTHERS THEN
+  DBMS_OUTPUT.PUT_LINE('Ha ocurrido un error');
 
 END;
